@@ -1,6 +1,5 @@
 # # Environment Setup
 # Import the required libraries
-
 import re
 import json
 import time
@@ -70,13 +69,11 @@ for product in products:
     organic_results = results['organic_results']
     walmart_data = walmart_data.append(pd.json_normalize(organic_results), ignore_index = True)
 
-
 # ## Required Walmart data:
 walmart_data = walmart_data[["title", "rating", "reviews", "two_day_shipping", "out_of_stock", "primary_offer.offer_price"]]
 walmart_data['market'] = 'Walmart'
 
 # # Cleaning Data
-
 # **1. From the title of the product extract the title of the brand of interest**
 
 # List of brands
@@ -88,25 +85,20 @@ ebay_data['brand'] = ebay_data['title'].str.findall(pat, flags=re.I).str.join(' 
 ebay_data = ebay_data.apply(lambda x: x.astype(str).str.lower())
 ebay_data['brand'] = ebay_data['brand'].str.replace(r'\b(\w+)(\s+\1)+\b', r'\1', regex=True)
 
-
 # **2. From the items_sold, extract the minimum integer value of the brand items sold as of the date of data extraction**
 
 # Define the function to remove the punctuation
 ebay_data['extensions'] = ebay_data['extensions'].str.replace('[^\w\s]','',  regex=True)
 ebay_data['extensions'] = ebay_data.extensions.str.extract('(\d+)')
 
-
 # **3. Drop all the missing values: this will/may not help in our analysis.**
-
 # Drop missing values
 ebay_data.dropna()
 
 # Drop title variable
 ebay_data.drop('title', inplace=True, axis=1)
 
-
 # ## Walmart  data cleaning
-
 #  Extract list of brands in walmart from Walmart product titles:
 L = ['Samsung', 'Hisense','TCL','Sony']
 pat = '|'.join(r"\b{}\b".format(x) for x in L)
@@ -123,7 +115,6 @@ walmart_data.dropna()
 walmart_data.drop('title', inplace=True, axis=1)
 
 # # Brand Analysis
-
 # **1. Aggregate the number of products for each brand and market
 
 ebay_brands = ebay_data[['brand', 'market']].reset_index()
@@ -138,9 +129,7 @@ count_series.drop(count_series.tail(1).index,inplace=True)
 fig = px.bar(count_series, x="brand", y="size", color="market")
 fig.show()
 
-
 # # Ebay Brand compared to the items sold 
-
 # Brand sales in Ebay
 sales = ebay_data[['brand', 'extensions']].reset_index()
 sales["brand"] = sales["brand"].replace("nan", "samsung", regex=True)
@@ -151,7 +140,6 @@ sales['brand'] = sales['brand'].replace(r'^\s*$', 'lg', regex=True)
 
 fig = px.bar(sales, x="brand", y="extensions")
 fig.show()
-
 
 # # Shipping cost effect on the sales of a brand in Ebay?
 # **Group the data by shipping status and the number of sales:**
@@ -165,7 +153,6 @@ ebay_data.loc[ebay_data.shipping.str.contains('(\d+)')  == True, 'shipping'] = '
 shipped_sales = ebay_data[['brand', 'shipping', 'extensions']].reset_index()
 shipped_sales['extensions'] = pd.to_numeric(shipped_sales['extensions'])
 
-
 # Aggregate the data by the grouping
 shipped_sales = shipped_sales.groupby(['shipping','brand'])['extensions'].sum().reset_index()
 shipped_sales["extensions"] = pd.to_numeric(shipped_sales ["extensions"])
@@ -176,18 +163,16 @@ shipped_sales = shipped_sales.drop(labels=[5,7,13], axis=0)
 fig = px.bar(shipped_sales, x="brand", y="extensions", color="shipping")
 fig.show()
 
-
 # # Correlation in Ebay sales
-
 # **The question we would like to answer: is there a correlation between item prices, the reviews and the items sold?**
 # ## Extract data:
 
 cor = ebay_data[['price.extracted', 'extensions', 'reviews']].reset_index()
+
 # Drop data whose values are not known
 cor_data = cor_data[~cor.reviews.str.contains("nan")]
 col = cor.columns.drop('index')
 cor[col] = cor [col].apply(pd.to_numeric, errors='coerce')
-
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -201,16 +186,13 @@ heatmap = sns.heatmap(cor.corr(), mask=mask, vmin=-1, vmax=1, annot=True, cmap='
 fig = px.scatter(cor_data, x="price.extracted", y="extensions", trendline="ols")
 fig.show()
 
-
 # ## 2. Correlation between reviews & items sold
 fig = px.scatter(cor_data, x="reviews", y="extensions" , trendline="ols")
 fig.show()
 
-
 # ## 3. Correlation between prices & reviews
 fig = px.scatter(cor_data, x="reviews", y="price.extracted", trendline="ols")
 fig.show()
-
 
 # ## General Reviews and Prices
 ebay_rv = ebay_data[['brand', 'price.extracted', 'reviews', 'market']]
