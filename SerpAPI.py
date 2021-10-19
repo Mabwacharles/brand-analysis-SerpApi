@@ -1,11 +1,5 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 # # Environment Setup
 # Import the required libraries
-
-# In[79]:
-
 
 import re
 import json
@@ -16,13 +10,8 @@ from serpapi import GoogleSearch
 import warnings
 warnings.filterwarnings("ignore", 'This pattern has match groups')
 
-
-# ## Ebay data extracted by the serpAPI:
+# ## Ebay data extracted by the SerpApi:
 # ## Ebay tool
-
-# In[15]:
-
-
 api_key =  "serp_api_key"
 engine_search = "ebay"
 
@@ -50,21 +39,11 @@ for product in products:
     organic_results = results['organic_results']
     ebay_data = ebay_data.append(pd.json_normalize(organic_results), ignore_index = True)
 
-
 # ## Required Ebay data:
-
-# In[18]:
-
-
 ebay_data = ebay_data[["title", "condition", "shipping", "reviews", "top_rated", "price.extracted", "extensions"]]
 ebay_data['market'] = 'Ebay'
 
-
 # ## Walmart tool:
-
-# In[30]:
-
-
 api_key =  "serp_api_key"
 engine_search = "walmart"
 
@@ -76,7 +55,6 @@ products = [
     {"name":"engine", "query":"lg"},
     {"name":"engine", "query":"hisense"}   
 ]
-
 
 walmart_data = pd.DataFrame([])
 
@@ -94,20 +72,12 @@ for product in products:
 
 
 # ## Required Walmart data:
-
-# In[31]:
-
-
 walmart_data = walmart_data[["title", "rating", "reviews", "two_day_shipping", "out_of_stock", "primary_offer.offer_price"]]
 walmart_data['market'] = 'Walmart'
-
 
 # # Cleaning Data
 
 # **1. From the title of the product extract the title of the brand of interest**
-
-# In[24]:
-
 
 # List of brands
 L = ['Samsung', 'Hisense','TCL','Sony']
@@ -121,18 +91,12 @@ ebay_data['brand'] = ebay_data['brand'].str.replace(r'\b(\w+)(\s+\1)+\b', r'\1',
 
 # **2. From the items_sold, extract the minimum integer value of the brand items sold as of the date of data extraction**
 
-# In[25]:
-
-
 # Define the function to remove the punctuation
 ebay_data['extensions'] = ebay_data['extensions'].str.replace('[^\w\s]','',  regex=True)
 ebay_data['extensions'] = ebay_data.extensions.str.extract('(\d+)')
 
 
 # **3. Drop all the missing values: this will/may not help in our analysis.**
-
-# In[26]:
-
 
 # Drop missing values
 ebay_data.dropna()
@@ -143,10 +107,7 @@ ebay_data.drop('title', inplace=True, axis=1)
 
 # ## Walmart  data cleaning
 
-# In[33]:
-
-
-#  Extract ist of brands in walmart from Walmart product titles:
+#  Extract list of brands in walmart from Walmart product titles:
 L = ['Samsung', 'Hisense','TCL','Sony']
 pat = '|'.join(r"\b{}\b".format(x) for x in L)
 
@@ -155,23 +116,15 @@ walmart_data['brand'] = walmart_data['title'].str.findall(pat, flags=re.I).str.j
 walmart_data = walmart_data.apply(lambda x: x.astype(str).str.lower())
 walmart_data['brand'] = walmart_data['brand'].str.replace(r'\b(\w+)(\s+\1)+\b', r'\1', regex=True)
 
-
-# In[35]:
-
-
 # Drop missing values
 walmart_data.dropna()
 
 # Drop title variable
 walmart_data.drop('title', inplace=True, axis=1)
 
-
 # # Brand Analysis
 
-# **1. Agregate the number of products for each brand and market
-
-# In[54]:
-
+# **1. Aggregate the number of products for each brand and market
 
 ebay_brands = ebay_data[['brand', 'market']].reset_index()
 walmart_brands = walmart_data[['brand', 'market']].reset_index()
@@ -188,9 +141,6 @@ fig.show()
 
 # # Ebay Brand compared to the items sold 
 
-# In[58]:
-
-
 # Brand sales in Ebay
 sales = ebay_data[['brand', 'extensions']].reset_index()
 sales["brand"] = sales["brand"].replace("nan", "samsung", regex=True)
@@ -205,9 +155,6 @@ fig.show()
 
 # # Shipping cost effect on the sales of a brand in Ebay?
 # **Group the data by shipping status and the number of sales:**
-
-# In[72]:
-
 
 ebay_data['shipping'] = ebay_data['shipping'].replace("nan", "with shipping cost", regex=True)
 ebay_data['shipping'] = ebay_data['shipping'].str.replace('[^\w\s]','',  regex=True)
@@ -235,9 +182,6 @@ fig.show()
 # **The question we would like to answer: is there a correlation between item prices, the reviews and the items sold?**
 # ## Extract data:
 
-# In[80]:
-
-
 cor = ebay_data[['price.extracted', 'extensions', 'reviews']].reset_index()
 # Drop data whose values are not known
 cor_data = cor_data[~cor.reviews.str.contains("nan")]
@@ -252,46 +196,23 @@ plt.figure(figsize=(16, 6))
 mask = np.triu(np.ones_like(cor.corr(), dtype=np.bool))
 heatmap = sns.heatmap(cor.corr(), mask=mask, vmin=-1, vmax=1, annot=True, cmap='BrBG')
 
-
-# In[74]:
-
-
-
-
-
 # # Scatter plot
 # ## 1. Correlation between prices & items sold
-
-# In[48]:
-
-
 fig = px.scatter(cor_data, x="price.extracted", y="extensions", trendline="ols")
 fig.show()
 
 
 # ## 2. Correlation between reviews & items sold
-
-# In[49]:
-
-
 fig = px.scatter(cor_data, x="reviews", y="extensions" , trendline="ols")
 fig.show()
 
 
 # ## 3. Correlation between prices & reviews
-
-# In[50]:
-
-
 fig = px.scatter(cor_data, x="reviews", y="price.extracted", trendline="ols")
 fig.show()
 
 
 # ## General Reviews and Prices
-
-# In[51]:
-
-
 ebay_rv = ebay_data[['brand', 'price.extracted', 'reviews', 'market']]
 walmart_rv = walmart_data[['brand', 'primary_offer.offer_price', 'reviews', 'market']]
 walmart_rv = walmart_rv.rename({'primary_offer.offer_price': 'price.extracted',}, axis=1)
@@ -301,10 +222,6 @@ rvw['reviews'] = rvw['reviews'].replace("nan", 99, regex=True)
 rvw['price.extracted'] = pd.to_numeric(rvw['price.extracted'])
 rvw['reviews'] = pd.to_numeric(rvw['reviews'])
 rvw['brand'] = rvw['brand'].replace(r'^\s*$', 'lg', regex=True)
-
-
-# In[52]:
-
 
 fig = px.scatter(rvw, x="price.extracted", y="reviews",  color="market", symbol="brand", trendline="ols", trendline_scope="overall")
 fig.show()
